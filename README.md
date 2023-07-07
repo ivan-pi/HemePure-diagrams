@@ -106,3 +106,219 @@ Reporter ..> TemplateDictionary
 Reporter ..> Reportable
 Reporter --> Reportable
 ```
+
+## Configuration and IO
+
+```mermaid
+
+classDiagram
+direction BT
+
+%% --- src/configuration/CommandLine.h
+
+class CommandLine {
+    +CommandLine(argc,argv)
+    +GetUsage() string$
+    +NumberOfImages() unsigned int
+    +GetOutputDir() string &
+    +GetInputFileU() string &
+    +ArgumentCount() int
+    +Arguments() : `char**`
+    -string inputFile
+    -string outputDir
+    -unsigned int images
+    -int argc
+    -char** argv
+}
+
+class OptionError
+class Exception
+
+OptionError --|> Exception
+OptionError --* CommandLine
+
+%% --- src/configuration/SimConfig.h
+
+class SimConfig {
+    
+    +New(string &path) : SimConfig*$
+    #SimConfig(string path)
+    #Init() void
+    +Save(string path)
+    +GetInlets()
+    +GetOutlets()
+    +GetStressType()
+    +GetMaxmimumVelocity()
+    +GetMaximumStress()
+    +GetDataFilePath()
+    +GetTotalTimeSteps()
+    +GetWarmUpSteps()
+    +GetTimeStepLength()
+    +GetVoxelSize()
+    +GetGeometryOrigin()
+    +PropertyOutputCount()
+    +GetPropertyOutput()
+    +GetPropertyOutputs()
+    +GetColloidConfigPath()
+    +HasColloidSection()
+    +GetInitialPressure()
+    +GetUnitConverter()
+    +GetMonitoringConfiguration()
+    #CreateUnitConverter()$ void
+    #CheckIoletMatchesCMake(ioletEl, requiredBC)$ void
+    #GetDimensionalValueInLatticeUnits(elem,units,value)
+    #GetDimensionalValueInLatticeUnits(elem,units)
+    -DoIO()
+    -DoIOForSimulation()
+    -DoIOForGeometry()
+    -DoIOForInOutlets()
+    -DoIOForBaseInOutlet()
+    -DoIOForPressureInOutlet()
+    -DoIOForCosinePressureInOutlet()
+    -DoIOForFilePressureInOutlet()
+    -DoIOForVelocityInOutlet()
+    -DoIOForParabolicVelocityInOutlet() 
+}
+
+
+%% --- src/io/PathManager.h
+
+class PathManager {
+    +PathManager(CommandLine commandLine, bool &io, int &processorCount)
+    +GetInputFile() string &
+    +GetImageDirectory() string &
+    +GetColloidPath() string &
+    +GetReportPath() string &
+    +SaveConfiguration(SimConfig *simConfig) void
+    +EmptyOutputDirectories() void
+    +XdrImageWriter(long int time) Writer
+    +GetDataExtractionPath() string &
+    -GuessOutputDir() void
+    -string outputDir
+    -string inputFile
+    -string imageDirectory
+    -string colloidFile
+    -string configLeafName
+    -string reportName
+    -string dataPath
+    -CommandLine &options
+    -bool doIo
+}
+
+PathManager ..> Writer
+PathManager --> CommandLine
+PathManager --o CommandLine
+
+PathManager ..> SimConfig
+
+%% --- src/io/formats/geometry.h
+
+class geometry {
+    <<Singleton>>
+    +Get() geometry &$
+    +GetMaxBlockRecordLength(blockSideLength) unsigned int 
+    +GetMaxBlockRecordLength(blockSideLength,nFluidSites) unsigned int
+    +GetNeighbourhood()$ vector~Vector3D~int~~ &
+    -geometry()
+    -geometry *singleton$
+    -vector~Vector3D~int~~ displacements
+}
+
+%% --- src/io/writers/Writer.h
+
+class Writer {
+    <<Abstract>>
+    +getCurrentStreamPosition()* unsigned int
+    +operator<<(value) Writer &
+    #Writer()
+    #writeFieldSeparator()* void
+    #writeRecordSeparator()*
+    #_write()*
+}
+
+%% --- src/io/writers/null/NullWriter.h
+
+class NullWriter
+
+NullWriter --|> Writer
+
+%% --- src/io/writers/ascii/AsciiStreamWriter.h
+
+class AsciiStreamWriter
+
+AsciiStreamWriter --|> Writer
+
+
+%% --- src/io/writers/ascii/AsciiFileWriter.h
+
+class AsciiFileWriter {
+    +AsciiFileWriter(string fileName)
+}
+
+AsciiFileWriter --|> AsciiStreamWriter
+
+
+%% --- src/io/writers/xdr/XdrMemWriter.h
+
+class XdrWriter {
+    +getCurrentStreamPosition() unsigned int
+    +writeFieldSeparator() void
+    +writeRecordSeparator() void
+    #_write()
+    #XDR mXdr
+}
+
+XdrWriter --|> Writer
+XdrWriter --o XDR
+
+%% --- src/io/writers/xdr/XdrMemWriter.h
+
+
+class XdrMemWriter {
+    +XdrMemWriter(char *dataBuffer, unsigned int dataLength)
+}
+
+XdrMemWriter --|> XdrWriter
+
+%% --- src/io/writers/xdr/XdrFileWriter.h
+
+class XdrFileWriter {
+    +XdrFileWriter(string &fileName, string &mode)
+    -FILE *myFile
+}
+
+XdrFileWriter --|> XdrWriter
+
+%% --- src/io/writers/xdr/XdrReader.h
+
+class XdrReader {
+    #XdrReader()
+    #XDR mXdr
+    -FILE *myFile
+    +readDouble(double &outDouble) bool
+    +readFloat(float &outDouble) bool
+    +readInt(int &outInt) bool
+    +readUnsingedInt(unsigned int &outUint)
+    +readUnsignedLong(uint64_t &outUlong)
+    +GetPosition() unsigned int
+    +SetPosition(unsigned int iPosition) bool
+}
+
+XdrReader --o XDR
+
+%% --- src/io/writers/xdr/XdrMemReader.h
+
+class XdrMemReader {
+    +XdrMemReader(dataBuffer, dataLength)
+}
+
+XdrMemReader --|> XdrReader
+
+%% --- src/io/writers/xdr/XdrFileReader.h
+
+class XdrFileReader {
+    +XdrFileReader(xdrFile)
+}
+
+XdrFileReader --|> XdrReader
+```
