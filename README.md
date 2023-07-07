@@ -877,3 +877,79 @@ class Resource {
     -string resourceName
 }
 ```
+
+## Utilities
+
+```mermaid
+
+classDiagram
+direction BT
+
+%% --- src/util/Cache.h
+
+class Cache~CacheType~ {
+    +Cache(unsigned long size)
+    +Get(unsinged long index) `CacheType &`
+    +Put(unsinged long index, const CacheType item)
+    #Reserve(unsigned long size)
+    -vector~CacheType~items
+}
+
+%% --- src/util/CheckingCache.h
+
+class CheckingCache~CacheType~ {
+    +CheckingCache(SimulationState &simulationState, unsigned long size)
+    +Get(unsinged long index) `CacheType &`
+    +Put(unsinged long index, const CacheType item)
+    #Reserve(unsigned long size)
+    #SimulationState &simulationState
+    #vector~unsigned_long~ lastUpdate
+}
+
+CheckingCache --|> Cache
+CheckingCache ..> SimulationState
+
+
+%% --- src/util/RefreshableCache.h
+
+class RefreshableCache~CacheType~ {
+    +RefreshableCache(SimulationState &simulationState, unsigned long size)
+    +SetRefreshFlag() void
+    +UnsetRefreshFlag() void
+    +RequiresRefresh() bool
+    -bool requiresRefreshing
+    -unsigned long cacheSize
+}
+
+RefreshableCache --|> CheckingCache
+RefreshableCache ..> SimulationState
+
+%% --- src/util/UnitConverter.h
+
+class UnitConverter {
+    +UnitConverter(PhysicalTime timeStep, PhysicalDistance voxelSize, PhysicalPosition latticeOrigin)
+    -PhysicalDistance latticeDistance
+    -PhysicalTime latticeTime
+    -PhysicalMass latticeMass
+    -PhysicalSpeed latticeSpeed
+    -PhysicalPosition latticeOrigin
+    -PhysicalPressure latticePressure
+}
+
+%% --- src/util/Matrix3D.h
+
+class Matrix3D {
+    +addDiagonal(distribn_t value) void
+    +timesVector(Vector3D~double~ &multiplier, Vector3D~double~ &result) void
+    +operator*(distribn_t scalarValue) Matrix3D
+    +operator*=(distribn_t value)
+    +operator[](unsigned int row) `distribn_t *`
+    -distribn_t matrix[3][3]
+}
+
+Matrix3D ..> Vector3D
+
+%% --- src/util/Vector3D.h
+
+class Vector3D
+```
