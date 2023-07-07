@@ -422,3 +422,19 @@ class XdrFileReader {
 
 XdrFileReader --|> XdrReader
 ```
+
+## Resources
+
+```mermaid
+classDiagram
+
+%% --- src/resources/Resource.h
+
+class Resource {
+    +Resource(string &aResourceName)
+    +Path() string
+    +BuildPath()
+    +InstallPath()
+    -string resourceName
+}
+```
