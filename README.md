@@ -1,6 +1,106 @@
 # HemePure-diagrams
 Mermaid Diagrams for HemePure
 
+
+## SimulationMaster 
+
+```mermaid
+
+
+classDiagram
+direction BT
+
+%% --- src/SimulationMaster.h
+
+class SimulationMaster {
+    +SimulationMaster(options,ioComms)
+    +Abort() void
+    +IsCurrentProcTheIOProc() bool
+    +GetProcessorCount() int
+    +RunSimulation() void
+    +GetState() `SimulationState *`
+    +Finalise() void
+    +check_GPU_capabilities() void
+    #DoTimeStep()* void
+
+    -Initialise() void
+    -SetupReporting() void
+    -OutPutPeriod(unsigned int frequency) unsigned int
+    -HandleActors() void
+    -OnUnstableSimulation() void
+    -WriteLocalImages() void
+    -GenerateNetworkImages() void
+    -RecalculatePropertyRequirements() void
+    -LogStabilityReport() void
+
+    #BoundaryValues *inletValues
+    #BoundaryValues *outletValues
+    #LatticeData *latticeData
+    #LBM~latticeType~ latticeBoltzmannModel
+    #NeighbouringDataManader *neighbouringDataManager
+    #IOCommunicator &ioComms
+
+    -SimConfig *simConfig
+    -PathManager *fileManager
+    -Timers timings
+    -Reporter *reporter
+    -BuildInfo build_info
+
+    -SimulationState *simulationState
+    -MonitoringConfig *monitoringConfig
+    -StabilityTester~latticeType~ *stabilityTester
+    -EntropyTester~latticeType~ *entropyTester
+
+    -IncompressibilityChecker *incompressibilityChecker
+    -ColloidController *colloidController
+    -Net communicationNet
+
+    -UnitConverter *unitConverter
+    -IterableDataSource *propertyDataSource
+    -PropertyActor *propertyExtractor
+
+    -StepManager *stepManager
+    -NetConcern *netConcern 
+
+    -unsigned int imagesPerSimulation
+    -unsigned int imagesPeriod
+    -LatticeTimeStep FORCE_FLUSH_PERIOD$
+}
+
+SimulationMaster ..> CommandLine
+SimulationMaster ..> IOCommunicator
+
+SimulationMaster --> SimulationState
+SimulationMaster --> BoundaryValues
+
+SimulationMaster --> LatticeData
+
+SimulationMaster --> LBM~LatticeType~
+SimulationMaster --> NeighbouringDataManager
+
+SimulationMaster --> SimConfig
+SimulationMaster --> PathManager
+SimulationMaster --> Timers
+SimulationMaster --> Reporter
+SimulationMaster --> BuildInfo
+
+SimulationMaster --> MonitoringConfig
+SimulationMaster --> StabilityTester~latticeType~
+SimulationMaster --> EntropyTester~latticeType~
+SimulationMaster --> IncompressibilityCheckerTester~latticeType~
+
+SimulationMaster --> ColloidController
+SimulationMaster --> Net
+
+SimulationMaster --> UnitConverter
+
+SimulationMaster --> IterableDataSource
+SimulationMaster --> PropertyActor
+
+SimulationMaster --> StepManager
+SimulationMaster --> NetConcern
+```
+
 ## Reporting
 
 ```mermaid
