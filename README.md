@@ -823,6 +823,45 @@ class XdrFileReader {
 XdrFileReader --|> XdrReader
 ```
 
+## Log
+
+```mermaid
+
+classDiagram
+direction BT
+
+%% --- src/log/Logger.h
+
+class LogLevel {
+    <<Enumerator>>
+    Critical
+    Error
+    Warning
+    Info
+    Debug
+    Trace
+}
+
+class LogType {
+    <<Enumerator>>
+    Singleton
+    OnePerCore
+}
+
+class Logger {
+    +ShouldDisplay()$ bool
+    +Init()$ void
+    +Log(string format, ...)$ void
+    -LogInternal(string format, va_list args)$ void
+    -LogLevel currentLogLevel$
+    -int thisRank$
+    -double startTime$
+}
+
+Logger ..|> LogType
+Logger ..|> LogLevel
+```
+
 ## Resources
 
 ```mermaid
