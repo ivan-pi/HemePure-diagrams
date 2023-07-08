@@ -501,6 +501,293 @@ ViaPointPointGathers ..> MpiCommunicator
 ViaPointPointGathers --|> StoringNet
 ```
 
+## Geometry
+
+⚠️ Not finished yet
+
+```mermaid
+
+classDiagram
+direction BT
+
+%% --- src/geometry/Geometry.h
+
+class Geometry {
+    +Geometry(dimensionsInBlocks,blockSize)
+    +GetBlockCount() site_t
+    +GetSitesPerBlock() site_t
+    -Vector3D~site_t~ dimensionsInBlocks
+    -site_t blockSize
+    -site_t blockCount
+    -site_t sitesPerBlock
+    +unordered_map Block
+}
+
+Geometry ..> BlockReadResult
+
+%% --- src/geometry/GeometryBlock.h
+
+class BlockReadResult {
+    vector~GeometrySite~ Sites
+}
+
+BlockReadResult ..> GeometrySite
+
+%% --- src/geometry/GeometryReader.h
+
+class GeometryReader {
+    +GeometryReader(LatticeInfo, Timers &timings, IOCommunicator &ioComm)
+    +LoadAndDecompose(string &dataFilePath) Geometry
+    -ReadOnAllTasks(nbytes) vector~char~~
+    -ReadPreamble() Geometry
+    -ReadHeader(blockCount)
+    -ReadInBlocksWithHalo(...)
+    -DecideWhichBlocksToReadIncludingHalo(...)
+    -ReadInBlock(...)
+    -DecompressBlockData(...)
+    -ParseBlock(...)
+    -ParseSite(...) GeometrySite
+    -GetReadingCoreForBlock(...)
+    -OptimiseDomainDecomposition(...)
+    -ValidateGeometry(...)
+    -GetHeaderLength()
+    -RereadBlocks(...)
+    -ImplementMoves(...)
+    -ShowDecompositions(...)
+    -ConvertTopologyRankToGlobalRank(...)
+    -ShouldValidate() bool
+
+    %% tons of state
+    -proc_t HEADER_READING_RANK$
+    -proc_t READING_GROUP_SIZE$
+    -proc_t READING_GROUP_SPACING$
+
+    -LatticeInfo &latticeInfo
+    -MpiFile file
+    -IOCommunicator &hemeLbComms
+    -MpiCommunicator computeComms
+    -bool participateInTopology
+
+    -sitedata_t nonEmptyBlocks
+    
+    -Timers &timings
+}
+
+GeometryReader ..> Geometry
+GeometryReader ..> GeometrySite
+GeometryReader ..> LatticeInfo
+GeometryReader ..> Timers
+GeometryReader ..> IOCommunicator
+GeometryReader --> IOCommunicator
+GeometryReader ..> XdrReader
+GeometryReader --o MpiFile
+GeometryReader --> LatticeInfo
+GeometryReader --o MpiCommunicator
+GeometryReader --> Timers
+
+%% --- src/geometry/GeometrySite.h
+
+class GeometrySite {
+    +GeometrySite(bool siteIsFluid)
+    +proc_t targetProcessor
+    +bool isFluid
+    +vector~geometrySiteLink~ links
+    +bool wallNormalAvailable
+    +Vector3D~float~ wallNormal
+}
+
+%% --- src/geometry/GeometrySiteLink.h
+
+class GeometrySiteLink {
+    +GeometrySiteLink()
+    +float distanceToIntersection
+    +int ioletId
+    +IntersectionType type
+}
+
+class IntersectionType {
+    <<Enumerator>>
+    NO_INTERSECTION
+    WALL_INTERSECTION
+    INLET_INTERSECTION
+    OUTLET_INTERSECTION
+}
+
+IntersectionType--* GeometrySiteLink
+
+%% --- src/geometry/LatticeData.h
+
+
+%% --- src/geometry/NeighbouringProcessor.h
+
+class NeighbouringProcessor {
+    +proc_t Rank
+    +site_t SharedDistributionCount
+    +site_t FirstSharedDistributionCount
+}
+
+%% --- src/geometry/Site.h
+
+class Site~DataSource~ {
+    +Site(site_t localContiguousIndex, DataSource &latticeData)
+    +IsWall() bool
+    +IsSolid() bool
+    +GetCollisionType() unsigned
+    +GetSiteType() SiteType
+    +GetIoletId() int
+    +HasWall(Direction direction) bool
+    +HasIolet(Direction direction) bool
+    +GetWallDistance(Direction direction) distribn_t
+    +GetWallDistances() `distribn_t *`
+    +GetWallNormal() Vector3D~distribn_t~
+    +GetForce()
+    +SetForce()
+    +AddToForce()
+    +GetIndex()
+    +GetStreamedIndex()
+    +GetFold()
+    +GetSiteData()
+    +GetGlobalSiteCoords()
+    #site_t index
+    #DataSource &latticeData
+}
+
+Site ..> SiteType
+
+%% --- src/geometry/SiteDataBare.h
+
+class SiteData {
+    +SiteData(GeometrySite &siteReadResult)
+    +SiteData(SiteData &other)
+    +SiteData()
+
+    +IsWall() bool
+    +IsSolid() bool
+    +GetCollisionType() unsigned int
+    +GetSiteType() SiteType
+    +GetIoletId() int
+    +GetIoletId() int &
+    +HasWall(Direction direction) bool
+    +HasIolet(Direction direction) bool
+    +GetIoletInterSectionData() uint32_t
+    +GetWallIntersectionData89 + uint32_t
+    #uint32_t wallIntersection
+    #uint32_t ioletIntersection
+    #SiteType type
+    #int ioletId
+}
+
+SiteData ..> SiteType
+SiteData ..> GeometrySite
+
+%% --- src/geometry/SiteType.h
+
+class SiteType {
+    <<Enumerator>>
+    SOLID_TYPE
+    FLUID_TYPE
+    INLET_TYPE
+    OUTLET_TYPE
+}
+
+%% --- src/geometry/VolumeTraverser.h
+
+class VolumeTraverser {
+    <<Abstract>>
+    +SetCurrentLocation(Vector3D~site_t~ &iLocation)
+    +GetX() site_t
+    +GetY() site_t
+    +GetZ() site_t
+    +GetCurrentIndex() site_t
+    +GetIndexFromLocation(Vector3D~site_t~ &iLocation)
+    +IncrementX()
+    +IncrementY()
+    +IncrementZ()
+    +DecrementX()
+    +DecrementY()
+    +DecrementZ()
+    +CurrentLocationValid() bool
+    +GetXCount()* site_t
+    +GetYCount()* site_t
+    +GetZCount()* site_t
+    #VolumeTraverser()
+    -Vector3D~site_t~ mCurrentLocation
+    -site_t mCurrentNumber
+}
+
+%% --- src/geometry/SiteTraverser.h
+
+class SiteTraverser {
+    +SiteTraverser(LatticeData &latticeData)
+    +GetXCount() site_t 
+    +GetYCount() site_t 
+    +GetZCount() site_t
+    -GetBlockSize() site_t
+    -LatticeData &mLatticeData
+}
+
+SiteTraverser --> LatticeData
+SiteTraverser --|> VolumeTraverser
+
+%% --- src/geometry/BlockTraverser.h
+
+class BlockTraverser {
+    +BlockTraverser(LatticeData &iLatData)
+    +CurrentBlockNumber() site_t
+    +GetSiteCoordinatesOfLowestSiteInCurrentBlock() Vector3D~site_t~
+    +GetCurrentBlockData() `Block &`
+    +GetBlockDataForLocation(Vector3D~site_t~ &iLocation) `Block &`
+    +GetBlockSize() site_t
+    +GetSiteTraverser() SiteTraverser
+    +GetXCount() site_t
+    +GetYCount() site_t
+    +GetZCount() site_t
+    +IsValidLocation(Vector3D~site_t~ block) bool
+    #GoToNextBlock() bool
+    #LatticeData &mLatticeData
+}
+
+BlockTraverser ..> SiteTraverser
+BlockTraverser --> LatticeData
+BlockTraverser --|> VolumeTraverser
+BlockTraverser ..> Block
+
+%% --- src/geometry/BlockTraverser.h
+
+class Block {
+    +Block()
+    +Block(site_t sitesPerBlock)
+    +IsEmpty() bool
+    +GetProcessorRankForSite(site_t localSiteIndex) proc_t
+    +GetLocalContiguousIndexForSite(site_t localSiteIndex) site_t
+    +SiteIsSolid(site_t localSiteIndex) bool
+    +SetProcessorRankForSite(site_t localSiteIndex, proc_t rank) void
+    +SetLocalContiguousIndexForSite(site_t localSiteIndex, site_t localContiguousIndex) void
+    -vector~proc_t~ processorRankForEachBlockSite
+    -vector~site_t~ localContiguousIndex
+    -site_t SOLID_SITE_ID$
+}
+
+%% --- src/geometry/BlockTraverserWithVisitedBlockTracker.h
+
+class BlockTraverserWithVisitedBlockTracker {
+    +BlockTraverserWithVisitedBlockTracker(LatticeData &iLatDat)
+    +GoToNextUnvisitedBlock() bool
+    +IsCurrentBlockVisited() bool
+    +IsBlockVisited(size_t n) bool
+    +IsBlockVisited(Vector3D~site_t~ n) bool
+    +MarkCurrentBlockVisited() void
+    +MarkBlockVisited(size_t n) void
+    +MarkBlockVisited(Vector3D~site_t~ n) void
+    -vector~bool~ mBlockVisited
+}
+
+BlockTraverserWithVisitedBlockTracker --|> BlockTraverser
+BlockTraverserWithVisitedBlockTracker ..> LatticeData
+
+```
+
+
 ## Reporting
 
 ```mermaid
