@@ -1240,3 +1240,246 @@ Matrix3D ..> Vector3D
 
 class Vector3D
 ```
+
+## LB
+
+```mermaid
+
+
+
+classDiagram
+
+class EntropyTester~LatticeType~ {
+    +EntropyTester(collisionTypes,typesTested,iLatDat,net,simState)
+    +PreReceive()
+    +Reset()
+    #ProgressFromChildren(splayNumber)
+    #ProgressToParent(splayNumber)
+    #TopNodeAction()
+    #PostReceiveFromChildren(splayNumber)
+}
+
+EntropyTester --|> PhasedBroadcastRegular
+EntropyTester --> LatticeData
+EntropyTester ..> SimulationState
+
+class HFunction~LatticeType~ {
+    +HFunction(lF,lFEq)
+    +operator(alpha,H)
+    +operator(alpha,H,dH)
+    +eval() double
+    +CalculateFalphaAndHInternal
+}
+
+class IncompressibilityChecker {
+    +IncompressibilityChecker(latticeData,net,simState,propertyCache,timings,densityDiff)
+}
+
+IncompressibilityChecker --|> BroadcastPolicy
+IncompressibilityChecker --|> Reportable
+
+IncompressibilityChecker --> LatticeData
+IncompressibilityChecker --> MacroscopicPropertyCache
+IncompressibilityChecker --> SimulationState
+IncompressibilityChecker --> Timers
+
+IncompressibilityChecker o-- DensityTracker
+
+class StressTypes {
+    <<Enumerator>>
+    VonMises
+    ShearStress
+    IgnoreStress
+}
+
+class LbmParameters {
+    +LbmParameters(timeStepLength,voxelSize)
+    +Update(timeStepLength,voxelSize)
+    +GetTimeStep() PhysicalTime
+    +GetVoxelSize() PhysicalDistance
+    +GetOmega() distribn_t
+    +GetTau() distribn_t
+    +GetStressParameter() distribn_t
+    +GetBeta() distribn_t
+    +StressTypes StressType
+    -PhysicalTime timestep
+    -PhysicalDistance voxelSize
+    -distribn_t omega
+    -distribn_t tau
+    -distribn_t stressParameter
+    -distribn_t beta
+}
+
+class MacroscopicPropertyCache {
+    +MacroscopicPropertyCache(simState, latticeData)
+    +ResetRequirements()
+    +GetSiteCount()
+    +
+}
+
+MacroscopicPropertyCache ..> SimulationState
+MacroscopicPropertyCache ..> LatticeData
+
+MacroscopicPropertyCache ..> RefreshableCache
+
+class SimulationState {
+    +SimulationState(timeStepLength,totalTimeSteps)
+    +Incremenet()
+    +Reset()
+    +SetIsTerminating(bool value)
+    +SetIsRendering(bool value)
+    +SetStability(bool value)
+}
+
+SimulationState --|> Reportable
+SimulationState ..> TemplateDictinorary
+SimulationState ..> Stability
+
+class Stability {
+    <<Enumerator>>
+    UndefinedStability
+    Unstable
+    Stable
+    StableAndConverged
+}
+
+
+class StabilityTester~LatticeType~ {
+    +StabilityTester(iLatDat,net,simState,timings,testerConfig)
+}
+
+StabilityTester --|> PhasedBroadcastRegular
+StabilityTester --> LatticeData
+StabilityTester --> SimulationState
+StabilityTester --> Timers
+StabilityTester --> SimConfig
+
+
+class LBM~LatticeType~ {
+    +LBM(iSimulationConfig,net,latDat,simState,atimings,neighbouringDataManager)
+}
+
+LBM --|> IteratedAction
+
+LBM --> SimConfig
+LBM --> Net
+LBM --> LatticeData
+LBM --> SimulationState
+LBM --> BoundaryValues
+LBM --o LbmParameters
+LBM --> UnitConverter
+LBM --> Timers
+LBM --o MacroscopicPropertyCache
+LBM --> NeighbouringDataManager
+
+
+class BaseCollision~CollisionImpl,KernelImpl~ {
+    <<CRTP>>
+    +CalculatePreCollision(hydrovars,site)
+    +Collide(lbmParams,hydroVars)
+}
+
+class Normal~KernelType~ {
+    +DoCalculatePreCollision(hydroVars,site)
+    +DoCollide(lbmParams,iHydroVars)
+}
+
+Normal --|> BaseCollision
+
+class ZeroVelocityEquilibrium~KernelType~ {
+    +DoCalculatePreCollision(hydroVars,site)
+    +DoCollide(lbmParams,iHydroVars)    
+}
+
+ZeroVelocityEquilibrium --|> BaseCollision
+
+class ZeroVelocityEquilibriumFixedDensity~KernelType~ {
+    +DoCalculatePreCollision(hydroVars,site)
+    +DoCollide(lbmParams,iHydroVars)    
+}
+
+ZeroVelocityEquilibriumFixedDensity --|> BaseCollision
+
+
+class NonZeroVelocityEquilibriumFixedDensity~KernelType~ {
+    +DoCalculatePreCollision(hydroVars,site)
+    +DoCollide(lbmParams,iHydroVars)    
+}
+
+NonZeroVelocityEquilibriumFixedDensity --|> BaseCollision
+
+%% -------
+%% KERNELS
+%% -------
+
+class BoundaryComms {
++BoundaryComms(iSimState,iProcsList,boundaryComm,iHasBoundary)
++Wait()
++Send()
++Receive()
++GetListOfProcs() vector~int~
++ReceiveDoubles(array,size)
++WaitAllComms()
++FinishSend()
+-bool hasBoundary
+-int nProcs
+-vector~int~ procsList
+-BoundaryCommunicator &bcComm
+-MPI_Request *sendRequest
+-MPI_Status *sendStatus
+-MPI_Request receiveRequest
+-MPI_Status receiveStatus
+-SimulationState *mState
+}
+
+BoundaryComms --> SimulationState
+BoundaryComms --> BoundaryCommunicator
+
+class BoundaryCommunicator {
+    +BoundaryCommunicator(&parent)
+    +IsCurrentProcTheBCProc() bool
+    +GetBCProcRank() int
+}
+
+BoundaryCommunicatpr --|> MpiCommunicator
+
+class BoundaryValues {
++RequestComms()
++EndIteration()
++Reset()
++FinishReceive()
++GetBoundaryDensity()
++GetDensityMin()
++GetBCProcRank()
++GetLocalIolet()
++GetLocalIoletCount()
++GetTimeStep()
++GetIoletType()
+-IsIOletOnThisProc() bool
+-HandleComms() void
+-SiteType ioletType
+-int totalIoletCount
+-int localIoletCount
+-vector~int~ localIoletIDs
+-vector~InOutlet*~ iolets
+-SimulationState* state
+-UnitConverter unitConverter
+-BoundaryCommunicator bcComms
+}
+
+BoundaryValues --|> IteratedAction
+BoundaryValues --> SiteType
+BoundaryValues --> InOutlet
+BoundaryValues --> SimulationState
+BoundaryValues --* UnitConverter
+BoundaryValues --* BoundaryCommunicator
+
+class InOutlet
+class IoletExtraData
+
+IoletExtraData --> InOutlet
+InOutlet --> BoundaryComms
+InOutlet ..> BoundaryCommunicator
+InOutlet ..> UnitConverte
+
+```
